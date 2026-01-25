@@ -69,6 +69,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
+        print("DEBUG: form_valid triggered! User is:", self.request.user.username)
         book = get_object_or_404(Book, id=self.kwargs.get('book_id'), user=self.request.user)
         form.instance.book = book
         form.instance.user = self.request.user
@@ -99,21 +100,28 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                 print(f"SMS Notification failed: {e}")
 
         # 2. Send Email Notification
+        print(f"DEBUG: Checking profile notification email: {profile.notify_email}")
         if profile.notify_email:
+            print("DEBUG: Profile email found. Attempting to send...")
             try:
                 subject = f"📖 New Journal Entry: {self.object.title}"
                 message_content = f"Hey,\n\n{self.request.user.username} just published a new entry in their 'Living Rack' library.\n\nRead it here: {share_url}"
                 
                 from_display = f'"{self.request.user.username} via The Living Rack" <{settings.EMAIL_HOST_USER}>'
                 
+                # Only add Reply-To if the user has an email set
+                reply_to_list = [self.request.user.email] if self.request.user.email else None
+                
                 email = EmailMessage(
                     subject=subject,
                     body=message_content,
                     from_email=from_display,
                     to=[profile.notify_email],
-                    reply_to=[self.request.user.email]
+                    reply_to=reply_to_list
                 )
+                print(f"DEBUG: Attempting to send to {profile.notify_email} with reply_to {reply_to_list}")
                 email.send(fail_silently=False)
+                print("DEBUG: Email accepted by SMTP server.")
                 
                 email_sent = True
                 messages.success(self.request, f"Notification sent successfully to {profile.notify_email}!")
