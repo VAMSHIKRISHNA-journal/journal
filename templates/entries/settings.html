@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings | Journal{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-10">
+    <div class="flex flex-col space-y-2 mb-10 text-center">
+        <h1 class="text-4xl font-black text-zinc-50 tracking-tighter">Notification Settings</h1>
+        <p class="text-zinc-500 mt-2">Configure who gets notified when you write a new volume of your life.</p>
+    </div>
+
+    <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-8 shadow-2xl">
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div class="p-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="p-2 bg-zinc-50 text-zinc-950 rounded-lg">
+                            <i data-lucide="bell-ring" class="w-5 h-5"></i>
+                        </div>
+                        <h2 class="text-lg font-bold text-zinc-50">Notify Anyone Close</h2>
+                    </div>
+
+                    <div class="space-y-6 dark-form">
+                        <!-- Email Field -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_notify_email">Close Person's Email</label>
+                            <input type="email" name="notify_email" id="id_notify_email" 
+                                   placeholder="partner@example.com"
+                                   value="{{ form.notify_email.value|default_if_none:'' }}"
+                                   class="flex h-11 w-full rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2 text-base text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 transition-all">
+                            <p class="text-[10px] text-zinc-500 font-mono">They will receive a beautifully formatted email notification.</p>
+                        </div>
+
+                        <!-- Phone Field -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_notify_phone">Close Person's Phone</label>
+                            <input type="text" name="notify_phone" id="id_notify_phone" 
+                                   placeholder="+91-0000000000"
+                                   value="{{ form.notify_phone.value|default_if_none:'' }}"
+                                   class="flex h-11 w-full rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2 text-base text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 transition-all">
+                            <p class="text-[10px] text-zinc-500 font-mono">Enter a phone number with country code for SMS alerts.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-zinc-900 flex items-center justify-end gap-6">
+                <a href="{% url 'dashboard' %}" class="text-sm font-bold text-zinc-500 hover:text-zinc-50 transition-colors">
+                    Back to Rack
+                </a>
+                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-bold bg-zinc-50 text-zinc-950 hover:bg-white h-11 px-8 shadow-[0_0_30px_rgba(255,255,255,0.05)] transition-all">
+                    Save Preferences
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .dark-form input { 
+        @apply bg-zinc-950 border-zinc-800 text-zinc-50 rounded-md w-full px-3 py-2 text-sm focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 !important; 
+    }
+</style>
+{% endblock %}

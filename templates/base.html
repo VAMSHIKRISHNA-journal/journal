@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-zinc-950 text-zinc-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Journal{% endblock %}</title>
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #09090b; /* zinc-950 */
+            color: #fafafa; /* zinc-50 */
+        }
+        /* Custom scrollbar to match Zinc theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fafafa;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4d4d8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1aa;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        zinc: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            300: '#d4d4d8',
+                            400: '#a1a1aa',
+                            500: '#71717a',
+                            600: '#52525b',
+                            700: '#3f3f46',
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        },
+                    },
+                    borderRadius: {
+                        'lg': '0.5rem',
+                        'md': 'calc(0.5rem - 2px)',
+                        'sm': 'calc(0.5rem - 4px)',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full">
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="sticky top-0 z-40 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16 items-center">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-6 h-6 text-zinc-50"></i>
+                        <span class="text-xl font-bold tracking-tight text-zinc-50">Journal</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        {% if user.is_authenticated %}
+                            <span class="text-sm text-zinc-400 hidden md:inline">Welcome back, <span class="text-zinc-50 font-medium">{{ user.username }}</span></span>
+                            <a href="{% url 'book-create' %}" class="bg-zinc-50 text-zinc-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                New Book
+                            </a>
+                            <a href="{% url 'profile-settings' %}" class="text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors">Settings</a>
+                            <form method="post" action="{% url 'logout' %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors">Logout</button>
+                            </form>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="text-sm font-medium text-zinc-400 hover:text-zinc-50 transition-colors">Login</a>
+                            <a href="{% url 'signup' %}" class="bg-zinc-50 text-zinc-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-200 transition-colors">Sign up</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            {% if messages %}
+                <div class="fixed top-20 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full">
+                    {% for message in messages %}
+                        <div class="p-4 rounded-xl border shadow-2xl flex items-start gap-3 backdrop-blur-md animate-in slide-in-from-right-full duration-500
+                            {% if message.tags == 'success' %} bg-emerald-950/40 border-emerald-500/30 text-emerald-400
+                            {% elif message.tags == 'error' %} bg-red-950/40 border-red-500/30 text-red-500
+                            {% else %} bg-zinc-900/80 border-zinc-800 text-zinc-300 {% endif %}">
+                            
+                            <div class="mt-0.5">
+                                {% if message.tags == 'success' %} <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                {% elif message.tags == 'error' %} <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                {% else %} <i data-lucide="info" class="w-4 h-4"></i> {% endif %}
+                            </div>
+                            
+                            <div class="flex-grow">
+                                <p class="text-xs font-semibold uppercase tracking-wider mb-0.5">
+                                    {% if message.tags == 'success' %} Success
+                                    {% elif message.tags == 'error' %} Error
+                                    {% else %} Update {% endif %}
+                                </p>
+                                <p class="text-sm opacity-90 leading-tight">{{ message }}</p>
+                            </div>
+
+                            <button onclick="this.parentElement.remove()" class="text-zinc-500 hover:text-zinc-50 transition-colors">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="border-t border-zinc-800 bg-zinc-950 py-6 mt-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-zinc-500 text-sm">
+                &copy; {{ now|date:"Y" }} Journal. Built with Django & Tailwind.
+            </div>
+        </footer>
+    </div>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>

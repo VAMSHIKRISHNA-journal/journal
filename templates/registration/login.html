@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Login | Journal{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto pt-20">
+    <div class="flex flex-col space-y-2 text-center mb-10">
+        <h1 class="text-3xl font-bold tracking-tight text-zinc-50">Welcome back</h1>
+        <p class="text-zinc-400 text-sm">Enter your credentials to access your library</p>
+    </div>
+
+    <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-8 shadow-2xl">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-500/10 border border-red-500/20 text-red-500 text-xs p-3 rounded-md mb-4">
+                    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_username">Username</label>
+                    <input type="text" name="username" id="id_username" required
+                           class="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-50 ring-offset-zinc-950 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 focus-visible:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_password">Password</label>
+                    <input type="password" name="password" id="id_password" required
+                           class="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-50 ring-offset-zinc-950 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 focus-visible:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm">
+                </div>
+            </div>
+            
+            <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-bold ring-offset-zinc-950 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 bg-zinc-50 text-zinc-950 hover:bg-zinc-200 h-10 w-full mt-2 shadow-lg hover:translate-y-[-1px] active:translate-y-[0px] duration-200">
+                Sign In
+            </button>
+        </form>
+        
+        <div class="mt-8 pt-6 border-t border-zinc-900 flex flex-col items-center gap-2">
+            <p class="text-sm text-zinc-500">
+                Don't have an account? 
+                <a href="{% url 'signup' %}" class="font-semibold text-zinc-50 hover:text-white transition-colors underline decoration-zinc-800 underline-offset-4">Create one</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

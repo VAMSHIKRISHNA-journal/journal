@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ book.title }} | Journal{% endblock %}
+
+{% block content %}
+<div class="space-y-12">
+    <!-- Book Header -->
+    <div class="flex flex-col md:flex-row gap-10 items-end">
+        <!-- Miniature Cover -->
+        <div class="w-32 aspect-[3/4] rounded-r-lg rounded-l-sm shadow-2xl relative overflow-hidden" style="background: linear-gradient(135deg, {{ book.cover_color }}, #09090b);">
+             <div class="absolute left-0 top-0 bottom-0 w-2 bg-black/20"></div>
+        </div>
+        
+        <div class="flex-grow space-y-2">
+            <div class="flex items-center gap-3 text-zinc-500 text-xs font-mono uppercase tracking-widest">
+                <a href="{% url 'dashboard' %}" class="hover:text-zinc-50 transition-colors">The Rack</a>
+                <span>/</span>
+                <span class="text-zinc-600">Volume {{ book.id }}</span>
+            </div>
+            <h1 class="text-5xl font-black text-zinc-50 tracking-tighter">{{ book.title }}</h1>
+            <p class="text-zinc-400 max-w-2xl leading-relaxed">{{ book.description|default:"No description provided for this collection." }}</p>
+        </div>
+
+        <a href="{% url 'entry-create' book.id %}" class="bg-zinc-50 text-zinc-950 px-6 py-3 rounded-2xl text-sm font-bold hover:bg-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] flex items-center gap-2">
+            <i data-lucide="pen-tool" class="w-4 h-4"></i>
+            Write Entry
+        </a>
+    </div>
+
+    <!-- Entries List -->
+    <div class="space-y-6 pt-10 border-t border-zinc-900">
+        {% if book.entries_in_book.all %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for entry in book.entries_in_book.all %}
+                    <div class="group bg-zinc-900/40 border border-zinc-800 p-8 rounded-[2rem] hover:bg-zinc-900/60 transition-all duration-300 relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-6">
+                            <span class="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">{{ entry.created_at|date:"F d, Y" }}</span>
+                            <div class="flex gap-4 opacity-0 group-hover:opacity-100 transition-all">
+                                <a href="{% url 'entry-update' entry.pk %}" class="text-zinc-500 hover:text-zinc-50 transition-colors">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </a>
+                                <a href="{% url 'entry-delete' entry.pk %}" class="text-zinc-500 hover:text-red-400 transition-colors">
+                                    <i data-lucide="trash" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-bold text-zinc-50 mb-3 group-hover:translate-x-1 transition-transform">{{ entry.title }}</h3>
+                        <p class="text-zinc-400 line-clamp-3 leading-relaxed text-sm">
+                            {{ entry.content }}
+                        </p>
+                        <div class="mt-8 flex items-center gap-2 text-xs font-bold text-zinc-600 uppercase tracking-tighter group-hover:text-zinc-400 transition-colors">
+                            <span>Read full memory</span>
+                            <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-20">
+                <p class="text-zinc-600 font-mono text-sm">THIS VOLUME IS CURRENTLY BLANK.</p>
+                <a href="{% url 'entry-create' book.id %}" class="mt-4 inline-block text-zinc-400 hover:text-zinc-50 underline decoration-zinc-800 underline-offset-8 transition-all">
+                    Start the first page
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

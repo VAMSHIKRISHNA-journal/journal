@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ entry.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 md:py-24">
+    <!-- Header: Minimalist and Elegant -->
+    <header class="mb-16 space-y-4">
+        <div class="flex items-center gap-2 text-zinc-500 text-xs font-mono uppercase tracking-widest mb-6">
+            <span>Published by {{ entry.user.username }}</span>
+            <span>•</span>
+            <span>{{ entry.created_at|date:"F d, Y" }}</span>
+        </div>
+        <h1 class="text-4xl md:text-6xl font-black text-zinc-50 leading-[1.1] tracking-tighter">{{ entry.title }}</h1>
+    </header>
+
+    <!-- Content: Distraction-free Reading -->
+    <article class="prose prose-invert prose-zinc max-w-none">
+        <div class="text-xl md:text-2xl leading-relaxed text-zinc-300 font-serif whitespace-pre-wrap select-none">
+            {{ entry.content }}
+        </div>
+    </article>
+
+    <!-- Footer: Subtle Signature -->
+    <footer class="mt-32 pt-12 border-t border-zinc-900 flex flex-col items-center">
+        <div class="flex items-center gap-2 text-zinc-600 font-mono text-[10px] uppercase tracking-[0.2em]">
+            <i data-lucide="book" class="w-3 h-3"></i>
+            End of Record
+        </div>
+    </footer>
+</div>
+
+<!-- Tracking Logic -->
+<script>
+    let startTime = Date.now();
+    let totalDuration = 0;
+    const shareToken = "{{ entry.share_token }}";
+    const pingUrl = "{% url 'entry-read-ping' entry.share_token %}";
+
+    // Track time every 5 seconds and send a heartbeat
+    setInterval(() => {
+        const currentTime = Date.now();
+        const delta = Math.round((currentTime - startTime) / 1000);
+        startTime = currentTime; // Reset for next interval
+        
+        // Send heartbeat to backend
+        const formData = new FormData();
+        formData.append('duration', delta);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch(pingUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).catch(err => console.debug("Ping failed", err));
+        
+    }, 5000);
+
+    // Also send whatever remains when the user leaves
+    window.addEventListener('beforeunload', () => {
+        const delta = Math.round((Date.now() - startTime) / 1000);
+        if(delta > 0) {
+            const formData = new FormData();
+            formData.append('duration', delta);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            navigator.sendBeacon(pingUrl, formData);
+        }
+    });
+
+    // Disable Right-Click and Copy to make it feel more "Exclusive" or "Sacred"
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's')) e.preventDefault();
+    });
+</script>
+
+<style>
+    /* Premium Reading Typography */
+    body {
+        background-color: #09090b; /* zinc-950 */
+    }
+    .prose {
+        --tw-prose-body: #d4d4d8; /* zinc-300 */
+        --tw-prose-headings: #fafafa; /* zinc-50 */
+    }
+    /* Hide scrollbar */
+    ::-webkit-scrollbar { display: none; }
+</style>
+{% endblock %}

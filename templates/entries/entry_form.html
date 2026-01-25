@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit Entry{% else %}New Entry{% endif %} | Journal{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header with Breadcrumbs/Back -->
+    <div class="mb-10 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <a href="{% url 'book-detail' book.id %}" class="flex items-center justify-center w-10 h-10 rounded-full border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 transition-all text-zinc-400 hover:text-zinc-50">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-zinc-50">
+                    {% if object %}Edit Entry{% else %}Write New Entry{% endif %}
+                </h1>
+                <p class="text-zinc-500 text-sm mt-1">In collection: <span class="text-zinc-400">{{ book.title }}</span></p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+             <div id="check-status" class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-500">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                Checking Grammar...
+             </div>
+             <button id="refine-ai" type="button" class="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-300 transition-all hover:text-zinc-50">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                Refine All
+             </button>
+        </div>
+    </div>
+
+    <!-- The Editor Container -->
+    <form id="editor-form" method="post" class="space-y-8">
+        {% csrf_token %}
+        
+        <div class="relative group">
+            <input 
+                type="text" 
+                name="title" 
+                id="id_title" 
+                maxlength="200" 
+                required 
+                placeholder="Entry Title..."
+                value="{{ form.title.value|default_if_none:'' }}"
+                class="w-full bg-transparent border-none text-4xl md:text-5xl font-black text-zinc-50 placeholder:text-zinc-900 focus:ring-0 focus:outline-none transition-all"
+            >
+        </div>
+
+        <div class="relative min-h-[500px]">
+            <!-- Hidden textarea for Django submission -->
+            <textarea name="content" id="id_content" class="hidden">{{ form.content.value|default_if_none:'' }}</textarea>
+            
+            <!-- ContentEditable Div: The actual editor with spellcheck -->
+            <div 
+                id="real-editor" 
+                contenteditable="true" 
+                spellcheck="true"
+                placeholder="Start your story here..."
+                class="w-full min-h-[500px] bg-transparent border-none text-lg md:text-xl leading-relaxed text-zinc-300 placeholder:text-zinc-800 focus:ring-0 focus:outline-none outline-none whitespace-pre-wrap"
+            >{{ form.content.value|default_if_none:'' }}</div>
+            
+            <!-- Floating Popup for Correction -->
+            <div id="correction-popup" class="hidden absolute z-[60] bg-zinc-900 border border-zinc-800 shadow-2xl rounded-xl p-2 min-w-[200px]">
+                <div class="text-[10px] text-zinc-500 font-mono mb-2 px-2 uppercase tracking-tighter">Suggestion</div>
+                <div id="suggestion-container" class="space-y-1"></div>
+            </div>
+        </div>
+
+        <!-- Sticky Bottom Bar -->
+        <div class="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-lg px-4 z-50">
+            <div class="bg-zinc-950/90 backdrop-blur-xl border border-zinc-800 p-2 rounded-2xl shadow-2xl flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 pl-4">
+                    <div class="flex flex-col">
+                        <span id="word-count" class="text-[10px] font-mono text-zinc-600 uppercase">0 Words</span>
+                        <span id="issue-count" class="text-[9px] font-mono text-zinc-400 uppercase">Clear</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'book-detail' book.id %}" class="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-50 transition-colors">
+                        Discard
+                    </a>
+                    <button type="submit" class="bg-zinc-50 text-zinc-950 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        {% if object %}Save Change{% else %}Publish Entry{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* ContentEditable Placeholder Effect */
+    [contenteditable]:empty:before {
+        content: attr(placeholder);
+        color: #18181b; /* zinc-900 */
+        cursor: text;
+    }
+    
+    /* Error Underlining style */
+    .grammarly-error {
+        border-bottom: 2px solid #ef4444; /* red-500 */
+        cursor: pointer;
+        background: rgba(239, 68, 68, 0.1);
+    }
+    .spelling-error {
+        border-bottom: 2px dashed #f59e0b; /* amber-500 */
+        cursor: pointer;
+    }
+
+    /* Hide scrollbar */
+    #real-editor::-webkit-scrollbar { display: none; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const editor = document.getElementById('real-editor');
+        const hiddenContent = document.getElementById('id_content');
+        const wordCountDisplay = document.getElementById('word-count');
+        const issueCountDisplay = document.getElementById('issue-count');
+        const checkStatus = document.getElementById('check-status');
+
+        // Initialize editor with content if exists
+        if (hiddenContent.value) {
+            editor.innerText = hiddenContent.value;
+            updateStats();
+        }
+
+        // Sync content and update stats
+        editor.addEventListener('input', () => {
+            hiddenContent.value = editor.innerText;
+            updateStats();
+            debounceCheck();
+        });
+
+        function updateStats() {
+            const text = editor.innerText.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            wordCountDisplay.innerText = `${words} Words`;
+        }
+
+        // LanguageTool API Integration (Free Tier)
+        let checkTimeout;
+        function debounceCheck() {
+            clearTimeout(checkTimeout);
+            checkStatus.classList.remove('hidden');
+            checkTimeout = setTimeout(performGrammarCheck, 2000);
+        }
+
+        async function performGrammarCheck() {
+            const text = editor.innerText;
+            if (!text || text.length < 5) {
+                checkStatus.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('https://api.languagetool.org/v2/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `text=${encodeURIComponent(text)}&language=en-US`
+                });
+                
+                const data = await response.json();
+                const issues = data.matches;
+                
+                if (issues.length > 0) {
+                    issueCountDisplay.innerText = `${issues.length} Issues Found`;
+                    issueCountDisplay.classList.add('text-amber-500');
+                    // We don't auto-wrap matches here to avoid breaking contenteditable focus,
+                    // but we enable the "Refine" button
+                } else {
+                    issueCountDisplay.innerText = 'Clear';
+                    issueCountDisplay.classList.remove('text-amber-500');
+                }
+            } catch (error) {
+                console.error('Check failed:', error);
+            } finally {
+                checkStatus.classList.add('hidden');
+            }
+        }
+
+        // Mock Refine/AI function - in a real app this would call an LLM
+        document.getElementById('refine-ai').addEventListener('click', async () => {
+             const btn = document.getElementById('refine-ai');
+             const originalText = btn.innerHTML;
+             btn.innerHTML = '<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> Refining...';
+             lucide.createIcons();
+
+             const text = editor.innerText;
+             
+             // Using LanguageTool to find and replace the first few issues as a "Fix All" demo
+             const response = await fetch('https://api.languagetool.org/v2/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `text=${encodeURIComponent(text)}&language=en-US`
+             });
+             const data = await response.json();
+             
+             let refinedText = text;
+             // Apply replacements backwards to keep offsets valid
+             data.matches.reverse().forEach(match => {
+                 if (match.replacements && match.replacements.length > 0) {
+                     const replacement = match.replacements[0].value;
+                     refinedText = refinedText.substring(0, match.offset) + replacement + refinedText.substring(match.offset + match.length);
+                 }
+             });
+
+             setTimeout(() => {
+                editor.innerText = refinedText;
+                hiddenContent.value = refinedText;
+                updateStats();
+                btn.innerHTML = originalText;
+                issueCountDisplay.innerText = 'All Fixed';
+                issueCountDisplay.classList.remove('text-amber-500');
+                issueCountDisplay.classList.add('text-green-500');
+                lucide.createIcons();
+             }, 800);
+        });
+
+        // Focus title initially if empty
+        const titleField = document.getElementById('id_title');
+        if (!titleField.value) titleField.focus();
+    });
+</script>
+{% endblock %}

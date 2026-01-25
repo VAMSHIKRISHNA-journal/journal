@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Update Collection{% else %}Begin New Collection{% endif %} | Journal{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-10">
+    <div class="flex flex-col space-y-2 mb-10">
+        <div class="flex items-center gap-2 text-zinc-500 text-xs font-mono uppercase tracking-widest mb-2">
+            <a href="{% url 'dashboard' %}" class="hover:text-zinc-50 transition-colors">The Rack</a>
+            <span>/</span>
+            <span class="text-zinc-600">New Volume</span>
+        </div>
+        <h1 class="text-4xl font-black text-zinc-50 tracking-tighter">
+            {% if object %}Refine Collection{% else %}Begin New Collection{% endif %}
+        </h1>
+    </div>
+
+    <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-8 shadow-2xl">
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <!-- Title Field -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-zinc-400" for="id_title">Book Title</label>
+                    <input type="text" name="title" id="id_title" maxlength="200" required
+                           placeholder="e.g., Midnight Musings"
+                           value="{{ form.title.value|default_if_none:'' }}"
+                           class="flex h-11 w-full rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2 text-base text-zinc-50 ring-offset-zinc-950 placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 focus-visible:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm">
+                    <p class="text-[11px] text-zinc-500 font-mono">Give your collection a soul with a strong title.</p>
+                </div>
+
+                <!-- Description Field -->
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold text-zinc-400" for="id_description">Description</label>
+                    <textarea name="description" id="id_description" rows="3"
+                              placeholder="What will this volume record?..."
+                              class="flex min-h-[100px] w-full rounded-md border border-zinc-800 bg-zinc-900 px-4 py-3 text-base text-zinc-50 ring-offset-zinc-950 placeholder:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 focus-visible:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm resize-none"
+                    >{{ form.description.value|default_if_none:'' }}</textarea>
+                </div>
+
+                <!-- Color Picker Field -->
+                <div class="space-y-3">
+                    <label class="text-sm font-semibold text-zinc-400">Cover Aesthetic</label>
+                    <div class="flex items-center gap-4 p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                        <input type="color" name="cover_color" id="id_cover_color" 
+                               value="{{ form.cover_color.value|default:'#18181b' }}"
+                               class="w-12 h-12 rounded-lg cursor-pointer bg-transparent border-none appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-zinc-700 shadow-xl">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-zinc-50 uppercase tracking-tighter">Color Palette</span>
+                            <span class="text-[10px] text-zinc-500 font-mono">Select a hexadecimal hue for the spine.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-zinc-900 flex items-center justify-end gap-6">
+                <a href="{% url 'dashboard' %}" class="text-sm font-bold text-zinc-500 hover:text-zinc-50 transition-colors">
+                    Discard
+                </a>
+                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-bold ring-offset-zinc-950 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 disabled:pointer-events-none disabled:opacity-50 bg-zinc-50 text-zinc-950 hover:bg-white h-11 px-8 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+                    {% if object %}Save Changes{% else %}Bind Volume{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
