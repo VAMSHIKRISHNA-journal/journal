@@ -1,5 +1,7 @@
 # 📖 The Living Rack: Beyond Words, Into the Soul
 
+**Live Site:** [https://the-living-rack.onrender.com](https://the-living-rack.onrender.com)
+
 ### *"Because the strongest relationships aren't built on status updates, but on shared volumes of the heart."*
 
 **The Living Rack** is a premium, AI-enhanced journaling sanctuary designed not just for private reflection, but for the silent bridges between people. It transforms a lonely diary into a shared library of the soul.
