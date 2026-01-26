@@ -92,7 +92,7 @@ DATABASES = {
 if os.getenv('DATABASE_URL'):
     import dj_database_url
     DATABASES['default'] = dj_database_url.config(
-        conn_max_age=600,
+        conn_max_age=0,  # Disable persistence to avoid issues with Render's rapid connection closing
         conn_health_checks=True,
         ssl_require=True
     )
@@ -153,8 +153,9 @@ NOTIFICATION_PHONE_NUMBER = os.getenv('NOTIFICATION_PHONE_NUMBER', '+91707584024
 # Email Configuration (For Email Notifications)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+EMAIL_PORT = 465             # Using SSL/465 as Port 587 is frequently blocked on cloud providers
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = True
 EMAIL_TIMEOUT = 10  # Seconds
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
