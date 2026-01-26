@@ -161,10 +161,10 @@ NOTIFICATION_PHONE_NUMBER = os.getenv('NOTIFICATION_PHONE_NUMBER', '+91707584024
 # Email Configuration (For Email Notifications)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465             # Using SSL/465 as Port 587 is frequently blocked on cloud providers
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = True
-EMAIL_TIMEOUT = 10  # Seconds
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_TIMEOUT = 15
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = f"The Living Rack <{EMAIL_HOST_USER}>"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

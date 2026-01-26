@@ -10,6 +10,14 @@ from django.core.mail import EmailMessage
 from django.http import JsonResponse
 from twilio.rest import Client
 from .models import Book, Entry, Profile, ReadEvent
+import threading
+
+def send_email_async(email_obj):
+    try:
+        email_obj.send(fail_silently=False)
+        print(f"DEBUG: Background email sent to {email_obj.to}")
+    except Exception as e:
+        print(f"DEBUG: Background email failed: {e}")
 
 # --- BOOK VIEWS (The Rack) ---
 
@@ -122,22 +130,13 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     to=[profile.notify_email],
                     reply_to=reply_to_list
                 )
-                print(f"DEBUG: Attempting to send to {profile.notify_email} with reply_to {reply_to_list}")
+                print(f"DEBUG: Dispatching background email to {profile.notify_email}...")
                 
-                # We catch exceptions ourselves so we can log the exact error
-                try:
-                    num_sent = email.send(fail_silently=False)
-                except Exception as mail_err:
-                    print(f"DEBUG: SMTP Error: {mail_err}")
-                    num_sent = 0
-
-                print(f"DEBUG: Email dispatch attempted. Status: {num_sent}")
+                # Run the send in a separate thread so the user doesn't wait
+                threading.Thread(target=send_email_async, args=(email,)).start()
                 
-                if num_sent:
-                    email_sent = True
-                    messages.success(self.request, f"Notification sent successfully to {profile.notify_email}!")
-                else:
-                    messages.warning(self.request, f"Email notification to {profile.notify_email} failed. Check server logs for details.")
+                email_sent = True
+                messages.success(self.request, f"Entry saved! Notifying {profile.notify_email} in the background.")
             except Exception as e:
                 messages.error(self.request, f"Failed to prepare email notification: {str(e)}")
                 print(f"Email Preparation failed: {e}")
@@ -224,9 +223,9 @@ def entry_read_ping(request, token):
                         from_email=settings.EMAIL_HOST_USER,
                         to=[author.email],
                     )
-                    email.send(fail_silently=False)
+                    threading.Thread(target=send_email_async, args=(email,)).start()
                 except Exception as e:
-                    print(f"Ping Email failed: {e}")
+                    print(f"Ping Email preparation failed: {e}")
             
             # Send SMS to Author (if settings configured)
             if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER:
