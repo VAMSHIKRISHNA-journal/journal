@@ -109,7 +109,8 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                 subject = f"📖 New Journal Entry: {self.object.title}"
                 message_content = f"Hey,\n\n{self.request.user.username} just published a new entry in their 'Living Rack' library.\n\nRead it here: {share_url}"
                 
-                from_display = f'"{self.request.user.username} via The Living Rack" <{settings.EMAIL_HOST_USER}>'
+                # Use a simpler from_email to avoid SMTP rejection
+                from_email = f"{settings.EMAIL_HOST_USER}"
                 
                 # Only add Reply-To if the user has an email set
                 reply_to_list = [self.request.user.email] if self.request.user.email else None
@@ -117,22 +118,29 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                 email = EmailMessage(
                     subject=subject,
                     body=message_content,
-                    from_email=from_display,
+                    from_email=from_email,
                     to=[profile.notify_email],
                     reply_to=reply_to_list
                 )
                 print(f"DEBUG: Attempting to send to {profile.notify_email} with reply_to {reply_to_list}")
-                num_sent = email.send(fail_silently=True)
+                
+                # We catch exceptions ourselves so we can log the exact error
+                try:
+                    num_sent = email.send(fail_silently=False)
+                except Exception as mail_err:
+                    print(f"DEBUG: SMTP Error: {mail_err}")
+                    num_sent = 0
+
                 print(f"DEBUG: Email dispatch attempted. Status: {num_sent}")
                 
                 if num_sent:
                     email_sent = True
                     messages.success(self.request, f"Notification sent successfully to {profile.notify_email}!")
                 else:
-                    messages.warning(self.request, f"Email notification to {profile.notify_email} might have failed. Please check your settings.")
+                    messages.warning(self.request, f"Email notification to {profile.notify_email} failed. Check server logs for details.")
             except Exception as e:
-                messages.error(self.request, f"Failed to send email notification: {str(e)}")
-                print(f"Email Notification failed: {e}")
+                messages.error(self.request, f"Failed to prepare email notification: {str(e)}")
+                print(f"Email Preparation failed: {e}")
             
         if not profile.notify_email and not profile.notify_phone:
             messages.info(self.request, "Entry saved. No notification recipients configured in Settings.")
@@ -209,17 +217,19 @@ def entry_read_ping(request, token):
             
             # Send Email to Author
             if author.email:
-                from_display = f'"The Living Rack Alerts" <{settings.EMAIL_HOST_USER}>'
-                email = EmailMessage(
-                    subject="✨ Journal Read Alert!",
-                    body=msg,
-                    from_email=from_display,
-                    to=[author.email],
-                )
-                email.send(fail_silently=True)
+                try:
+                    email = EmailMessage(
+                        subject="✨ Journal Read Alert!",
+                        body=msg,
+                        from_email=settings.EMAIL_HOST_USER,
+                        to=[author.email],
+                    )
+                    email.send(fail_silently=False)
+                except Exception as e:
+                    print(f"Ping Email failed: {e}")
             
             # Send SMS to Author (if settings configured)
-            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
+            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER:
                 # Priority: author's notify_phone, then fall back to global notification number
                 target_phone = author.profile.notify_phone or settings.NOTIFICATION_PHONE_NUMBER
                 if target_phone:
