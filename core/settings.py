@@ -91,7 +91,11 @@ DATABASES = {
 
 if os.getenv('DATABASE_URL'):
     import dj_database_url
-    DATABASES['default'] = dj_database_url.config(conn_max_age=600)
+    DATABASES['default'] = dj_database_url.config(
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True
+    )
 
 
 # Password validation
