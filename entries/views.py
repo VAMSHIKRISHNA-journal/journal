@@ -87,7 +87,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
         sms_sent = False
 
         # 1. Send SMS Notification
-        if profile.notify_phone:
+        if profile.notify_phone and settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
             try:
                 client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
                 message = client.messages.create(
@@ -98,6 +98,8 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                 sms_sent = True
             except Exception as e:
                 print(f"SMS Notification failed: {e}")
+        elif profile.notify_phone:
+            print("SMS Notification skipped: Twilio credentials not configured.")
 
         # 2. Send Email Notification
         print(f"DEBUG: Checking profile notification email: {profile.notify_email}")
@@ -120,11 +122,14 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     reply_to=reply_to_list
                 )
                 print(f"DEBUG: Attempting to send to {profile.notify_email} with reply_to {reply_to_list}")
-                email.send(fail_silently=False)
-                print("DEBUG: Email accepted by SMTP server.")
+                num_sent = email.send(fail_silently=True)
+                print(f"DEBUG: Email dispatch attempted. Status: {num_sent}")
                 
-                email_sent = True
-                messages.success(self.request, f"Notification sent successfully to {profile.notify_email}!")
+                if num_sent:
+                    email_sent = True
+                    messages.success(self.request, f"Notification sent successfully to {profile.notify_email}!")
+                else:
+                    messages.warning(self.request, f"Email notification to {profile.notify_email} might have failed. Please check your settings.")
             except Exception as e:
                 messages.error(self.request, f"Failed to send email notification: {str(e)}")
                 print(f"Email Notification failed: {e}")
@@ -203,24 +208,30 @@ def entry_read_ping(request, token):
             msg = f"✨ Someone just read your journal '{entry.title}' for {event.duration_seconds} seconds!"
             
             # Send Email to Author
-            from_display = f'"The Living Rack Alerts" <{settings.EMAIL_HOST_USER}>'
-            email = EmailMessage(
-                subject="✨ Journal Read Alert!",
-                body=msg,
-                from_email=from_display,
-                to=[author.email],
-            )
-            email.send(fail_silently=True)
+            if author.email:
+                from_display = f'"The Living Rack Alerts" <{settings.EMAIL_HOST_USER}>'
+                email = EmailMessage(
+                    subject="✨ Journal Read Alert!",
+                    body=msg,
+                    from_email=from_display,
+                    to=[author.email],
+                )
+                email.send(fail_silently=True)
             
             # Send SMS to Author (if settings configured)
-            try:
-                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                client.messages.create(
-                    body=msg,
-                    from_=settings.TWILIO_PHONE_NUMBER,
-                    to=settings.NOTIFICATION_PHONE_NUMBER # Using the dev's phone as example or author's phone
-                )
-            except: pass
+            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
+                # Priority: author's notify_phone, then fall back to global notification number
+                target_phone = author.profile.notify_phone or settings.NOTIFICATION_PHONE_NUMBER
+                if target_phone:
+                    try:
+                        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                        client.messages.create(
+                            body=msg,
+                            from_=settings.TWILIO_PHONE_NUMBER,
+                            to=target_phone
+                        )
+                    except Exception as e:
+                        print(f"Ping SMS failed: {e}")
 
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'invalid'}, status=400)
