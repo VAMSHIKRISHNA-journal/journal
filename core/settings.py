@@ -101,7 +101,7 @@ DATABASES = {
 if os.getenv('DATABASE_URL'):
     import dj_database_url
     DATABASES['default'] = dj_database_url.config(
-        conn_max_age=60,
+        conn_max_age=None, # Keep connection open indefinitely for maximum stability/quietness
         ssl_require=True
     )
 
