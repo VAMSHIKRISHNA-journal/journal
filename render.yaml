@@ -1,6 +1,7 @@
 services:
   - type: web
     name: the-living-rack
+    plan: free
     env: python
     buildCommand: "./build.sh"
     startCommand: "gunicorn core.wsgi"
