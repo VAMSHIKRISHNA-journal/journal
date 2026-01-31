@@ -13,13 +13,19 @@ from .models import Book, Entry, Profile, ReadEvent
 import threading
 
 def send_email_async(email_obj):
+    import logging
+    logger = logging.getLogger(__name__)
     try:
-        # Re-establish connection for the thread if necessary (though EmailMessage.send() handles it)
         sent_count = email_obj.send(fail_silently=False)
-        print(f"DEBUG: Background email sent to {email_obj.to}. Count: {sent_count}")
+        msg = f"DEBUG: Background email sent to {email_obj.to}. Count: {sent_count}"
+        print(msg)
+        with open("email_debug.log", "a") as f:
+            f.write(msg + "\n")
     except Exception as e:
-        print(f"DEBUG: Background email failed: {e}")
-        # In a real production app, we might log this to a file or monitoring service
+        msg = f"DEBUG: Background email failed: {e}"
+        print(msg)
+        with open("email_debug.log", "a") as f:
+            f.write(msg + "\n")
 
 # --- BOOK VIEWS (The Rack) ---
 
@@ -132,16 +138,24 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                         reply_to=reply_to_list
                     )
                     
-                    # Run the send in a separate thread
-                    threading.Thread(target=send_email_async, args=(email,)).start()
+                    # Run the send synchronously to catch any errors
+                    with open("email_debug.log", "a") as f:
+                        f.write(f"DEBUG: Attempting synchronous send to {recipient_list}\n")
+                    
+                    sent_count = email.send(fail_silently=False)
+                    
+                    with open("email_debug.log", "a") as f:
+                        f.write(f"DEBUG: Synchronous send successful. Count: {sent_count}\n")
                     
                     email_sent = True
-                    messages.success(self.request, f"Entry saved! Notifying {len(recipient_list)} friend(s) in the background.")
+                    messages.success(self.request, f"Entry saved! Notified {len(recipient_list)} friend(s).")
                 else:
                     print("DEBUG: Profile email was empty after splitting.")
             except Exception as e:
-                messages.error(self.request, f"Failed to prepare email notification: {str(e)}")
-                print(f"Email Preparation failed: {e}")
+                messages.error(self.request, f"Failed to send email notification: {str(e)}")
+                with open("email_debug.log", "a") as f:
+                    f.write(f"DEBUG: Synchronous send FAILED: {str(e)}\n")
+                print(f"Email sending failed: {e}")
             
         if not profile.notify_email and not profile.notify_phone:
             messages.info(self.request, "Entry saved. No notification recipients configured in Settings.")
@@ -225,9 +239,17 @@ def entry_read_ping(request, token):
                         from_email=settings.EMAIL_HOST_USER,
                         to=[author.email],
                     )
-                    threading.Thread(target=send_email_async, args=(email,)).start()
+                    with open("email_debug.log", "a") as f:
+                        f.write(f"DEBUG: Attempting synchronous read-alert send to {author.email}\n")
+                    
+                    email.send(fail_silently=False)
+                    
+                    with open("email_debug.log", "a") as f:
+                        f.write(f"DEBUG: Read-alert sent successfully.\n")
                 except Exception as e:
-                    print(f"Ping Email preparation failed: {e}")
+                    with open("email_debug.log", "a") as f:
+                        f.write(f"DEBUG: Read-alert FAILED: {str(e)}\n")
+                    print(f"Ping Email failed: {e}")
             
             # Send SMS to Author (if settings configured)
             if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER:
