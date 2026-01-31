@@ -8,7 +8,8 @@ django.setup()
 
 def test_email():
     try:
-        print(f"Attempting to send email from {settings.EMAIL_HOST_USER}...")
+        print(f"Attempting to send email from {settings.EMAIL_HOST_USER} via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}...")
+        # send_mail uses settings by default
         send_mail(
             'Test Subject',
             'Test message body.',
