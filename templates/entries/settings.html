@@ -25,12 +25,12 @@
                     <div class="space-y-6 dark-form">
                         <!-- Email Field -->
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_notify_email">Close Person's Email</label>
-                            <input type="email" name="notify_email" id="id_notify_email" 
-                                   placeholder="partner@example.com"
+                            <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_notify_email">Friends' Emails (Comma-separated)</label>
+                            <input type="text" name="notify_email" id="id_notify_email" 
+                                   placeholder="friend1@example.com, friend2@example.com"
                                    value="{{ form.notify_email.value|default_if_none:'' }}"
                                    class="flex h-11 w-full rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2 text-base text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 transition-all">
-                            <p class="text-[10px] text-zinc-500 font-mono">They will receive a beautifully formatted email notification.</p>
+                            <p class="text-[10px] text-zinc-500 font-mono">They will each receive a beautifully formatted email notification. Separate multiple emails with commas.</p>
                         </div>
 
                         <!-- Phone Field -->

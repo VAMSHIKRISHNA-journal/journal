@@ -14,10 +14,12 @@ import threading
 
 def send_email_async(email_obj):
     try:
-        email_obj.send(fail_silently=False)
-        print(f"DEBUG: Background email sent to {email_obj.to}")
+        # Re-establish connection for the thread if necessary (though EmailMessage.send() handles it)
+        sent_count = email_obj.send(fail_silently=False)
+        print(f"DEBUG: Background email sent to {email_obj.to}. Count: {sent_count}")
     except Exception as e:
         print(f"DEBUG: Background email failed: {e}")
+        # In a real production app, we might log this to a file or monitoring service
 
 # --- BOOK VIEWS (The Rack) ---
 
@@ -110,33 +112,33 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
             print("SMS Notification skipped: Twilio credentials not configured.")
 
         # 2. Send Email Notification
-        print(f"DEBUG: Checking profile notification email: {profile.notify_email}")
         if profile.notify_email:
-            print("DEBUG: Profile email found. Attempting to send...")
             try:
-                subject = f"📖 New Journal Entry: {self.object.title}"
-                message_content = f"Hey,\n\n{self.request.user.username} just published a new entry in their 'Living Rack' library.\n\nRead it here: {share_url}"
+                # Split comma-separated emails and filter out empty strings
+                recipient_list = [e.strip() for e in profile.notify_email.split(',') if e.strip()]
                 
-                # Use a simpler from_email to avoid SMTP rejection
-                from_email = f"{settings.EMAIL_HOST_USER}"
-                
-                # Only add Reply-To if the user has an email set
-                reply_to_list = [self.request.user.email] if self.request.user.email else None
-                
-                email = EmailMessage(
-                    subject=subject,
-                    body=message_content,
-                    from_email=from_email,
-                    to=[profile.notify_email],
-                    reply_to=reply_to_list
-                )
-                print(f"DEBUG: Dispatching background email to {profile.notify_email}...")
-                
-                # Run the send in a separate thread so the user doesn't wait
-                threading.Thread(target=send_email_async, args=(email,)).start()
-                
-                email_sent = True
-                messages.success(self.request, f"Entry saved! Notifying {profile.notify_email} in the background.")
+                if recipient_list and settings.EMAIL_HOST_USER:
+                    subject = f"📖 New Journal Entry: {self.object.title}"
+                    message_content = f"Hey,\n\n{self.request.user.username} just published a new entry in their 'Living Rack' library.\n\nRead it here: {share_url}"
+                    
+                    from_email = settings.EMAIL_HOST_USER
+                    reply_to_list = [self.request.user.email] if self.request.user.email else None
+                    
+                    email = EmailMessage(
+                        subject=subject,
+                        body=message_content,
+                        from_email=from_email,
+                        to=recipient_list,
+                        reply_to=reply_to_list
+                    )
+                    
+                    # Run the send in a separate thread
+                    threading.Thread(target=send_email_async, args=(email,)).start()
+                    
+                    email_sent = True
+                    messages.success(self.request, f"Entry saved! Notifying {len(recipient_list)} friend(s) in the background.")
+                else:
+                    print("DEBUG: Profile email was empty after splitting.")
             except Exception as e:
                 messages.error(self.request, f"Failed to prepare email notification: {str(e)}")
                 print(f"Email Preparation failed: {e}")
@@ -215,7 +217,7 @@ def entry_read_ping(request, token):
             msg = f"✨ Someone just read your journal '{entry.title}' for {event.duration_seconds} seconds!"
             
             # Send Email to Author
-            if author.email:
+            if author.email and settings.EMAIL_HOST_USER:
                 try:
                     email = EmailMessage(
                         subject="✨ Journal Read Alert!",
