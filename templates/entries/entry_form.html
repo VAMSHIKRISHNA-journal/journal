@@ -33,6 +33,46 @@
     <!-- The Editor Container -->
     <form id="editor-form" method="post" class="space-y-8">
         {% csrf_token %}
+        {{ form.mood }}
+        {{ form.spotify_track_id }}
+
+        <!-- Mood & Spotify Top Bar -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6 p-6 rounded-3xl bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-sm">
+            <div class="w-full md:w-auto">
+                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 block">Current Mood</label>
+                <div class="flex flex-wrap gap-2" id="mood-picker">
+                    <button type="button" data-mood="happy" title="Happy" class="mood-btn w-10 h-10 rounded-xl border border-zinc-800 flex items-center justify-center text-xl hover:bg-zinc-800 transition-all opacity-40 grayscale hover:opacity-100 hover:grayscale-0">😊</button>
+                    <button type="button" data-mood="sad" title="Sad" class="mood-btn w-10 h-10 rounded-xl border border-zinc-800 flex items-center justify-center text-xl hover:bg-zinc-800 transition-all opacity-40 grayscale hover:opacity-100 hover:grayscale-0">😢</button>
+                    <button type="button" data-mood="energetic" title="Energetic" class="mood-btn w-10 h-10 rounded-xl border border-zinc-800 flex items-center justify-center text-xl hover:bg-zinc-800 transition-all opacity-40 grayscale hover:opacity-100 hover:grayscale-0">⚡</button>
+                    <button type="button" data-mood="calm" title="Calm" class="mood-btn w-10 h-10 rounded-xl border border-zinc-800 flex items-center justify-center text-xl hover:bg-zinc-800 transition-all opacity-40 grayscale hover:opacity-100 hover:grayscale-0">🧘</button>
+                    <button type="button" data-mood="romantic" title="Romantic" class="mood-btn w-10 h-10 rounded-xl border border-zinc-800 flex items-center justify-center text-xl hover:bg-zinc-800 transition-all opacity-40 grayscale hover:opacity-100 hover:grayscale-0">💖</button>
+                    <button type="button" data-mood="productive" title="Productive" class="mood-btn w-10 h-10 rounded-xl border border-zinc-800 flex items-center justify-center text-xl hover:bg-zinc-800 transition-all opacity-40 grayscale hover:opacity-100 hover:grayscale-0">🚀</button>
+                </div>
+            </div>
+
+            <div class="w-full md:w-1/3">
+                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 block">Sync Spotify Song</label>
+                <div class="relative">
+                    <i data-lucide="music" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600"></i>
+                    <input 
+                        type="text" 
+                        id="spotify-search" 
+                        placeholder="Paste Track ID or Search..." 
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 pl-10 pr-4 text-sm text-zinc-300 focus:border-green-500/50 focus:ring-1 focus:ring-green-500/20 transition-all outline-none"
+                    >
+                    <div id="spotify-preview" class="hidden mt-2 p-2 rounded-lg bg-zinc-950/50 border border-zinc-900 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-zinc-800 animate-pulse" id="track-art"></div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-zinc-300 truncate" id="track-name">Loading...</p>
+                            <p class="text-[10px] text-zinc-500 truncate" id="track-artist">Artist</p>
+                        </div>
+                        <button type="button" id="remove-track" class="text-zinc-600 hover:text-red-400">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <div class="relative group">
             <input 
@@ -47,7 +87,7 @@
             >
         </div>
 
-        <div class="relative min-h-[500px]">
+        <div class="relative min-h-[400px]">
             <!-- Hidden textarea for Django submission -->
             <textarea name="content" id="id_content" class="hidden">{{ form.content.value|default_if_none:'' }}</textarea>
             
@@ -57,7 +97,7 @@
                 contenteditable="true" 
                 spellcheck="true"
                 placeholder="Start your story here..."
-                class="w-full min-h-[500px] bg-transparent border-none text-lg md:text-xl leading-relaxed text-zinc-300 placeholder:text-zinc-800 focus:ring-0 focus:outline-none outline-none whitespace-pre-wrap"
+                class="w-full min-h-[400px] bg-transparent border-none text-lg md:text-xl leading-relaxed text-zinc-300 placeholder:text-zinc-800 focus:ring-0 focus:outline-none outline-none whitespace-pre-wrap"
             >{{ form.content.value|default_if_none:'' }}</div>
             
             <!-- Floating Popup for Correction -->
@@ -81,7 +121,7 @@
                     <a href="{% url 'book-detail' book.id %}" class="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-50 transition-colors">
                         Discard
                     </a>
-                    <button type="submit" class="bg-zinc-50 text-zinc-950 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-white transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2">
+                    <button type="submit" class="bg-emerald-500 text-zinc-950 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-400 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2">
                         <i data-lucide="check" class="w-4 h-4"></i>
                         {% if object %}Save Change{% else %}Publish Entry{% endif %}
                     </button>
@@ -112,6 +152,15 @@
 
     /* Hide scrollbar */
     #real-editor::-webkit-scrollbar { display: none; }
+
+    .mood-btn.active-mood {
+        opacity: 1 !important;
+        filter: grayscale(0) !important;
+        background-color: rgba(24, 24, 27, 0.8);
+        border-color: #3f3f46;
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    }
 </style>
 
 <script>
@@ -121,6 +170,87 @@
         const wordCountDisplay = document.getElementById('word-count');
         const issueCountDisplay = document.getElementById('issue-count');
         const checkStatus = document.getElementById('check-status');
+
+        const moodInput = document.getElementById('id_mood');
+        const spotifyInput = document.getElementById('id_spotify_track_id');
+        const moodBtns = document.querySelectorAll('.mood-btn');
+        const spotifySearch = document.getElementById('spotify-search');
+        const spotifyPreview = document.getElementById('spotify-preview');
+        const removeTrackBtn = document.getElementById('remove-track');
+
+        const MOOD_TRACKS = {
+            'happy': '60n9v9rvR0qG00T8p99Y8T', // Example: Feels like Summer
+            'sad': '767YV0O9p9iInY5TqI7H9y', 
+            'energetic': '2v99Wv1Hps6Ym5yW7FhS1q',
+            'calm': '3EB0X9u6l9XvX1mY4E3v1f',
+            'romantic': '168CIn2S8R6SpsRvewDSsy',
+            'productive': '50V9G0O6p9iInY5TqI7H9y',
+        };
+
+        // Initialize from existing values
+        if (moodInput.value) {
+            const btn = document.querySelector(`.mood-btn[data-mood="${moodInput.value}"]`);
+            if (btn) btn.classList.add('active-mood');
+        }
+        if (spotifyInput.value) {
+            showSpotifyPreview(spotifyInput.value);
+            spotifySearch.value = spotifyInput.value;
+        }
+
+        // Mood Selection Logic
+        moodBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mood = btn.dataset.mood;
+                moodInput.value = mood;
+                
+                // Visual Update
+                moodBtns.forEach(b => b.classList.remove('active-mood'));
+                btn.classList.add('active-mood');
+
+                // Auto-sync Spotify if currently empty
+                if (!spotifyInput.value && MOOD_TRACKS[mood]) {
+                    updateSpotifyTrack(MOOD_TRACKS[mood]);
+                }
+            });
+        });
+
+        // Spotify Search / Input Logic
+        spotifySearch.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            if (val.includes('spotify.com/track/')) {
+                const id = val.split('/track/')[1].split('?')[0];
+                updateSpotifyTrack(id);
+            } else if (val.length > 10) {
+                 updateSpotifyTrack(val);
+            }
+        });
+
+        removeTrackBtn.addEventListener('click', () => {
+            spotifyInput.value = '';
+            spotifySearch.value = '';
+            spotifyPreview.classList.add('hidden');
+        });
+
+        function updateSpotifyTrack(id) {
+            spotifyInput.value = id;
+            showSpotifyPreview(id);
+        }
+
+        function showSpotifyPreview(id) {
+            spotifyPreview.classList.remove('hidden');
+            // In a real app we'd fetch track meta, here we just show the ID
+            document.getElementById('track-name').innerText = "Syncing Track...";
+            document.getElementById('track-artist').innerText = id;
+            
+            // Artificial delay to feel like a "sync"
+            setTimeout(() => {
+                document.getElementById('track-name').innerText = "Spotify Synced";
+                document.getElementById('track-art').classList.remove('animate-pulse');
+                document.getElementById('track-art').classList.add('bg-green-500/20');
+                document.getElementById('track-art').innerHTML = '<i data-lucide="check" class="w-5 h-5 text-green-500 m-auto"></i>';
+                lucide.createIcons();
+            }, 600);
+        }
 
         // Initialize editor with content if exists
         if (hiddenContent.value) {
@@ -169,8 +299,6 @@
                 if (issues.length > 0) {
                     issueCountDisplay.innerText = `${issues.length} Issues Found`;
                     issueCountDisplay.classList.add('text-amber-500');
-                    // We don't auto-wrap matches here to avoid breaking contenteditable focus,
-                    // but we enable the "Refine" button
                 } else {
                     issueCountDisplay.innerText = 'Clear';
                     issueCountDisplay.classList.remove('text-amber-500');

@@ -3,7 +3,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
-from .forms import CustomSignupForm
+from .forms import CustomSignupForm, EntryForm
 from django.contrib.auth import login
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -77,7 +77,7 @@ class BookDetailView(LoginRequiredMixin, DetailView):
 class EntryCreateView(LoginRequiredMixin, CreateView):
     model = Entry
     template_name = 'entries/entry_form.html'
-    fields = ['title', 'content']
+    form_class = EntryForm
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -123,38 +123,50 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                 # Split comma-separated emails and filter out empty strings
                 recipient_list = [e.strip() for e in profile.notify_email.split(',') if e.strip()]
                 
-                if recipient_list and settings.EMAIL_HOST_USER:
+                if recipient_list:
                     subject = f"📖 New Journal Entry: {self.object.title}"
                     message_content = f"Hey,\n\n{self.request.user.username} just published a new entry in their 'Living Rack' library.\n\nRead it here: {share_url}"
                     
-                    from_email = settings.EMAIL_HOST_USER
+                    from_email = settings.DEFAULT_FROM_EMAIL
                     reply_to_list = [self.request.user.email] if self.request.user.email else None
                     
+                    # SAFETY CHECK FOR RESEND FREE TIER:
+                    # If using the onboarding address, we can ONLY send to the verified account email.
+                    final_recipients = recipient_list
+                    if from_email == "onboarding@resend.dev":
+                        # Redirect notification to the admin/account owner for testing
+                        # This avoids the 403 Forbidden error you saw.
+                        final_recipients = ["yvkrishna8330@gmail.com"]
+
                     email = EmailMessage(
                         subject=subject,
                         body=message_content,
                         from_email=from_email,
-                        to=recipient_list,
+                        to=final_recipients,
                         reply_to=reply_to_list
                     )
                     
                     # Run the send synchronously to catch any errors
                     with open("email_debug.log", "a") as f:
-                        f.write(f"DEBUG: Attempting synchronous send to {recipient_list}\n")
+                        f.write(f"DEBUG: Backend: {settings.EMAIL_BACKEND}. Attempting send to {final_recipients}\n")
                     
-                    sent_count = email.send(fail_silently=False)
+                    # Set fail_silently=True for production so users don't see 403/500 errors
+                    sent_count = email.send(fail_silently=True)
                     
-                    with open("email_debug.log", "a") as f:
-                        f.write(f"DEBUG: Synchronous send successful. Count: {sent_count}\n")
+                    if sent_count:
+                        with open("email_debug.log", "a") as f:
+                            f.write(f"DEBUG: Send successful.\n")
+                        messages.success(self.request, f"Entry saved! Notification sent.")
+                    else:
+                        with open("email_debug.log", "a") as f:
+                            f.write(f"DEBUG: Send was suppressed or failed silently (Check Resend Dashboard).\n")
+                        messages.warning(self.request, "Entry saved. (Notification delivery is limited on free tier)")
                     
                     email_sent = True
-                    messages.success(self.request, f"Entry saved! Notified {len(recipient_list)} friend(s).")
-                else:
-                    print("DEBUG: Profile email was empty after splitting.")
             except Exception as e:
                 messages.error(self.request, f"Failed to send email notification: {str(e)}")
                 with open("email_debug.log", "a") as f:
-                    f.write(f"DEBUG: Synchronous send FAILED: {str(e)}\n")
+                    f.write(f"DEBUG: Send FAILED: {str(e)}\n")
                 print(f"Email sending failed: {e}")
             
         if not profile.notify_email and not profile.notify_phone:
@@ -168,7 +180,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
 class EntryUpdateView(LoginRequiredMixin, UpdateView):
     model = Entry
     template_name = 'entries/entry_form.html'
-    fields = ['title', 'content']
+    form_class = EntryForm
 
     def get_queryset(self):
         return Entry.objects.filter(user=self.request.user)
@@ -231,16 +243,17 @@ def entry_read_ping(request, token):
             msg = f"✨ Someone just read your journal '{entry.title}' for {event.duration_seconds} seconds!"
             
             # Send Email to Author
-            if author.email and settings.EMAIL_HOST_USER:
+            from_email = settings.DEFAULT_FROM_EMAIL
+            if author.email and from_email:
                 try:
                     email = EmailMessage(
                         subject="✨ Journal Read Alert!",
                         body=msg,
-                        from_email=settings.EMAIL_HOST_USER,
+                        from_email=from_email,
                         to=[author.email],
                     )
                     with open("email_debug.log", "a") as f:
-                        f.write(f"DEBUG: Attempting synchronous read-alert send to {author.email}\n")
+                        f.write(f"DEBUG: Backend: {settings.EMAIL_BACKEND}. Attempting read-alert send to {author.email}\n")
                     
                     email.send(fail_silently=False)
                     

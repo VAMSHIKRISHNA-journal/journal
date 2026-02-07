@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'entries',
     'crispy_forms',
     'crispy_tailwind',
+    'anymail',
 ]
 
 MIDDLEWARE = [
@@ -158,13 +159,28 @@ TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 NOTIFICATION_PHONE_NUMBER = os.getenv('NOTIFICATION_PHONE_NUMBER', '+917075840247')
 
-# Email Configuration (For Email Notifications)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = True
-EMAIL_TIMEOUT = 15
+# Email Configuration
+RESEND_API_KEY = os.getenv('RESEND_API_KEY')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+if RESEND_API_KEY:
+    # Use Resend API (Free and reliable for Render)
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {
+        "RESEND_API_KEY": RESEND_API_KEY,
+    }
+    # Resend Free Tier required using their verified domain or onboarding address
+    DEFAULT_FROM_EMAIL = "onboarding@resend.dev"
+else:
+    # Fallback to SMTP (Works locally)
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 465
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = True
+    EMAIL_HOST_USER = EMAIL_HOST_USER
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@thelivingrack.com"
+
+EMAIL_TIMEOUT = 15
+

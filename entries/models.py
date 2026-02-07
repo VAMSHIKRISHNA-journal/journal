@@ -18,10 +18,22 @@ class Book(models.Model):
         return self.title
 
 class Entry(models.Model):
+    MOOD_CHOICES = [
+        ('happy', '😊 Happy'),
+        ('sad', '😢 Sad'),
+        ('energetic', '⚡ Energetic'),
+        ('calm', '🧘 Calm'),
+        ('romantic', '💖 Romantic'),
+        ('productive', '🚀 Productive'),
+        ('melancholy', '☁️ Melancholy'),
+    ]
+
     user = models.ForeignKey(User, related_name='entries', on_delete=models.CASCADE)
     book = models.ForeignKey(Book, related_name='entries_in_book', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     content = models.TextField()
+    mood = models.CharField(max_length=20, choices=MOOD_CHOICES, blank=True, null=True)
+    spotify_track_id = models.CharField(max_length=100, blank=True, null=True)
     share_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
