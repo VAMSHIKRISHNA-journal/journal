@@ -20,4 +20,9 @@ urlpatterns = [
 
     path('settings/', views.ProfileUpdateView.as_view(), name='profile-settings'),
     path('signup/', views.signup, name='signup'),
+    
+    # Notifications
+    path('notifications/<int:pk>/read/', views.mark_notification_read, name='notification-mark-read'),
+    path('notifications/clear/', views.clear_all_notifications, name='notifications-clear'),
 ]
+
