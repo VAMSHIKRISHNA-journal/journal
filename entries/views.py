@@ -130,8 +130,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     from_email = settings.DEFAULT_FROM_EMAIL
                     reply_to_list = [self.request.user.email] if self.request.user.email else None
                     
-                    # ATTEMPT TO SEND TO FRIENDS (REMOVED SELF-ONLY RESTRICTION)
-                    # Note: Resend will still block non-verified recipients, but we will handle the failure silently.
+                    # PREPARE EMAIL
                     email = EmailMessage(
                         subject=subject,
                         body=message_content,
@@ -140,28 +139,12 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                         reply_to=reply_to_list
                     )
                     
-                    with open("email_debug.log", "a") as f:
-                        f.write(f"DEBUG: Attempting send to {recipient_list}\n")
-                    
-                    sent_count = email.send(fail_silently=True)
-                    
-                    if sent_count:
-                        messages.success(self.request, f"Entry saved! Notified {len(recipient_list)} friend(s).")
-                    else:
-                        # If it failed (due to Resend's free tier domain lock), notify the owner instead
-                        try:
-                            fallback_to = [self.request.user.email] if self.request.user.email else ["yvkrishna8330@gmail.com"]
-                            EmailMessage(
-                                subject="[System] Friend Notification Blocked by Provider",
-                                body=f"Your entry '{self.object.title}' was saved, but Resend blocked sending to your friends because the domain is unverified. \n\nRecipients were: {recipient_list}",
-                                from_email=from_email,
-                                to=fallback_to
-                            ).send(fail_silently=True)
-                        except: pass
-                        messages.warning(self.request, "Entry saved. Friend notifications are currently locked by Resend (verify your domain to unlock).")
-
+                    # Send Asynchronously so the user doesn't wait
+                    threading.Thread(target=send_email_async, args=(email,)).start()
+                    messages.success(self.request, f"Entry saved! Notifying {len(recipient_list)} friend(s).")
                     
                     email_sent = True
+
             except Exception as e:
                 messages.error(self.request, f"Failed to send email notification: {str(e)}")
                 with open("email_debug.log", "a") as f:

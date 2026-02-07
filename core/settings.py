@@ -161,14 +161,13 @@ NOTIFICATION_PHONE_NUMBER = os.getenv('NOTIFICATION_PHONE_NUMBER', '+91707584024
 
 # Email Configuration (RESEND)
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+# Once domain is verified in Resend, update DEFAULT_FROM_EMAIL in Render/Env to your domain email
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
 
 if RESEND_API_KEY:
     # Using Resend API (Strictly from env variables)
     EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
     ANYMAIL = {"RESEND_API_KEY": RESEND_API_KEY}
-    # Resend Free Tier: MUST use onboarding@resend.dev until domain verified
-    DEFAULT_FROM_EMAIL = "onboarding@resend.dev"
 else:
     # Fallback to SMTP
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -176,11 +175,14 @@ else:
     EMAIL_PORT = 465
     EMAIL_USE_TLS = False
     EMAIL_USE_SSL = True
-    EMAIL_HOST_USER = EMAIL_HOST_USER
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@thelivingrack.com"
+    # Default to a safe sender if not provided
+    if not DEFAULT_FROM_EMAIL or DEFAULT_FROM_EMAIL == 'onboarding@resend.dev':
+        DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER', 'noreply@thelivingrack.com')
 
 EMAIL_TIMEOUT = 15
+
 
 
 
