@@ -159,23 +159,18 @@ TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 NOTIFICATION_PHONE_NUMBER = os.getenv('NOTIFICATION_PHONE_NUMBER', '+917075840247')
 
-# Email Configuration (Multi-Provider Support)
-BREVO_API_KEY = os.getenv('BREVO_API_KEY')
+# Email Configuration (RESEND)
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', 're_DKSBy6vm_GnJD9DazexwFqCRvAtznpJsT')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 
-if BREVO_API_KEY:
-    # Brevo is best for 'No Domain' setups
-    EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
-    ANYMAIL = {"BREVO_API_KEY": BREVO_API_KEY}
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@thelivingrack.com"
-elif RESEND_API_KEY:
-    # Resend is the current fallback
+if RESEND_API_KEY:
+    # Using Resend API (Current Choice)
     EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
     ANYMAIL = {"RESEND_API_KEY": RESEND_API_KEY}
+    # Resend Free Tier: MUST use onboarding@resend.dev until domain verified
     DEFAULT_FROM_EMAIL = "onboarding@resend.dev"
 else:
-    # Last resort: SMTP
+    # Fallback to SMTP (Works locally)
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 465
@@ -186,4 +181,5 @@ else:
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@thelivingrack.com"
 
 EMAIL_TIMEOUT = 15
+
 
