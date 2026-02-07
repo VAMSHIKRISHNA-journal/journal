@@ -150,14 +150,16 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     else:
                         # If it failed (due to Resend's free tier domain lock), notify the owner instead
                         try:
+                            fallback_to = [self.request.user.email] if self.request.user.email else ["yvkrishna8330@gmail.com"]
                             EmailMessage(
                                 subject="[System] Friend Notification Blocked by Provider",
                                 body=f"Your entry '{self.object.title}' was saved, but Resend blocked sending to your friends because the domain is unverified. \n\nRecipients were: {recipient_list}",
                                 from_email=from_email,
-                                to=["yvkrishna8330@gmail.com"]
+                                to=fallback_to
                             ).send(fail_silently=True)
                         except: pass
                         messages.warning(self.request, "Entry saved. Friend notifications are currently locked by Resend (verify your domain to unlock).")
+
                     
                     email_sent = True
             except Exception as e:
