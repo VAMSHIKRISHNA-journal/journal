@@ -9,7 +9,6 @@ from django.contrib.auth import login
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
-from twilio.rest import Client
 from .models import Book, Entry, Profile, ReadEvent
 import threading
 
@@ -101,22 +100,6 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
         )
         
         email_sent = False
-        sms_sent = False
-
-        # 1. Send SMS Notification
-        if profile.notify_phone and settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
-            try:
-                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                message = client.messages.create(
-                    body=f"📖 New Journal Entry! \nTitle: {self.object.title}\nRead here: {share_url}",
-                    from_=settings.TWILIO_PHONE_NUMBER,
-                    to=profile.notify_phone
-                )
-                sms_sent = True
-            except Exception as e:
-                print(f"SMS Notification failed: {e}")
-        elif profile.notify_phone:
-            print("SMS Notification skipped: Twilio credentials not configured.")
 
         # 2. Send Email Notification
         if profile.notify_email:
@@ -151,7 +134,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     f.write(f"DEBUG: Send FAILED: {str(e)}\n")
                 print(f"Email sending failed: {e}")
             
-        if not profile.notify_email and not profile.notify_phone:
+        if not profile.notify_email:
             messages.info(self.request, "Entry saved. No notification recipients configured in Settings.")
 
         return redirect(self.get_success_url())
@@ -245,30 +228,17 @@ def entry_read_ping(request, token):
                     with open("email_debug.log", "a") as f:
                         f.write(f"DEBUG: Read-alert FAILED: {str(e)}\n")
                     print(f"Ping Email failed: {e}")
-            
-            # Send SMS to Author (if settings configured)
-            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER:
-                # Priority: author's notify_phone, then fall back to global notification number
-                target_phone = author.profile.notify_phone or settings.NOTIFICATION_PHONE_NUMBER
-                if target_phone:
-                    try:
-                        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                        client.messages.create(
-                            body=msg,
-                            from_=settings.TWILIO_PHONE_NUMBER,
-                            to=target_phone
-                        )
-                    except Exception as e:
-                        print(f"Ping SMS failed: {e}")
 
         return JsonResponse({'status': 'ok'})
+
 
 # --- PROFILE / SETTINGS ---
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = Profile
     template_name = 'entries/settings.html'
-    fields = ['notify_email', 'notify_phone']
+    fields = ['notify_email']
+
     success_url = reverse_lazy('dashboard')
 
     def get_object(self, queryset=None):

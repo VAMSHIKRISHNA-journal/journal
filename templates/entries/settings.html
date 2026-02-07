@@ -33,18 +33,19 @@
                             <p class="text-[10px] text-zinc-500 font-mono">They will each receive a beautifully formatted email notification. Separate multiple emails with commas.</p>
                         </div>
 
-                        <!-- Phone Field -->
+                        <!-- Email Field Only -->
                         <div class="space-y-2">
-                            <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_notify_phone">Close Person's Phone</label>
-                            <input type="text" name="notify_phone" id="id_notify_phone" 
-                                   placeholder="+91-0000000000"
-                                   value="{{ form.notify_phone.value|default_if_none:'' }}"
+                            <label class="text-xs font-semibold uppercase tracking-wider text-zinc-400" for="id_notify_email">Friends' Emails (Comma-separated)</label>
+                            <input type="text" name="notify_email" id="id_notify_email" 
+                                   placeholder="friend1@example.com, friend2@example.com"
+                                   value="{{ form.notify_email.value|default_if_none:'' }}"
                                    class="flex h-11 w-full rounded-md border border-zinc-800 bg-zinc-900 px-4 py-2 text-base text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-700/50 transition-all">
-                            <p class="text-[10px] text-zinc-500 font-mono">Enter a phone number with country code for SMS alerts.</p>
+                            <p class="text-[10px] text-zinc-500 font-mono">They will receive a beautifully formatted email notification via SMTP. Separate multiple emails with commas.</p>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             <div class="pt-8 border-t border-zinc-900 flex items-center justify-end gap-6">
                 <a href="{% url 'dashboard' %}" class="text-sm font-bold text-zinc-500 hover:text-zinc-50 transition-colors">
