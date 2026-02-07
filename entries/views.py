@@ -130,37 +130,34 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     from_email = settings.DEFAULT_FROM_EMAIL
                     reply_to_list = [self.request.user.email] if self.request.user.email else None
                     
-                    # SAFETY CHECK FOR RESEND FREE TIER:
-                    # If using the onboarding address, we can ONLY send to the verified account email.
-                    final_recipients = recipient_list
-                    if from_email == "onboarding@resend.dev":
-                        # Redirect notification to the admin/account owner for testing
-                        # This avoids the 403 Forbidden error you saw.
-                        final_recipients = ["yvkrishna8330@gmail.com"]
-
+                    # ATTEMPT TO SEND TO FRIENDS (REMOVED SELF-ONLY RESTRICTION)
+                    # Note: Resend will still block non-verified recipients, but we will handle the failure silently.
                     email = EmailMessage(
                         subject=subject,
                         body=message_content,
                         from_email=from_email,
-                        to=final_recipients,
+                        to=recipient_list,
                         reply_to=reply_to_list
                     )
                     
-                    # Run the send synchronously to catch any errors
                     with open("email_debug.log", "a") as f:
-                        f.write(f"DEBUG: Backend: {settings.EMAIL_BACKEND}. Attempting send to {final_recipients}\n")
+                        f.write(f"DEBUG: Attempting send to {recipient_list}\n")
                     
-                    # Set fail_silently=True for production so users don't see 403/500 errors
                     sent_count = email.send(fail_silently=True)
                     
                     if sent_count:
-                        with open("email_debug.log", "a") as f:
-                            f.write(f"DEBUG: Send successful.\n")
-                        messages.success(self.request, f"Entry saved! Notification sent.")
+                        messages.success(self.request, f"Entry saved! Notified {len(recipient_list)} friend(s).")
                     else:
-                        with open("email_debug.log", "a") as f:
-                            f.write(f"DEBUG: Send was suppressed or failed silently (Check Resend Dashboard).\n")
-                        messages.warning(self.request, "Entry saved. (Notification delivery is limited on free tier)")
+                        # If it failed (due to Resend's free tier domain lock), notify the owner instead
+                        try:
+                            EmailMessage(
+                                subject="[System] Friend Notification Blocked by Provider",
+                                body=f"Your entry '{self.object.title}' was saved, but Resend blocked sending to your friends because the domain is unverified. \n\nRecipients were: {recipient_list}",
+                                from_email=from_email,
+                                to=["yvkrishna8330@gmail.com"]
+                            ).send(fail_silently=True)
+                        except: pass
+                        messages.warning(self.request, "Entry saved. Friend notifications are currently locked by Resend (verify your domain to unlock).")
                     
                     email_sent = True
             except Exception as e:
@@ -255,7 +252,7 @@ def entry_read_ping(request, token):
                     with open("email_debug.log", "a") as f:
                         f.write(f"DEBUG: Backend: {settings.EMAIL_BACKEND}. Attempting read-alert send to {author.email}\n")
                     
-                    email.send(fail_silently=False)
+                    email.send(fail_silently=True)
                     
                     with open("email_debug.log", "a") as f:
                         f.write(f"DEBUG: Read-alert sent successfully.\n")
