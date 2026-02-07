@@ -9,6 +9,7 @@ urlpatterns = [
     path('book/<int:pk>/edit/', views.BookUpdateView.as_view(), name='book-update'),
     path('book/<int:pk>/delete/', views.BookDeleteView.as_view(), name='book-delete'),
 
+
     # Journals (Entries)
     path('book/<int:book_id>/new/', views.EntryCreateView.as_view(), name='entry-create'),
     path('entry/<int:pk>/edit/', views.EntryUpdateView.as_view(), name='entry-update'),
@@ -20,9 +21,4 @@ urlpatterns = [
 
     path('settings/', views.ProfileUpdateView.as_view(), name='profile-settings'),
     path('signup/', views.signup, name='signup'),
-    
-    # Notifications
-    path('notifications/<int:pk>/read/', views.mark_notification_read, name='notification-mark-read'),
-    path('notifications/clear/', views.clear_all_notifications, name='notifications-clear'),
 ]
-

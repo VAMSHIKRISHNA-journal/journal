@@ -50,32 +50,8 @@ class Profile(models.Model):
     notify_email = models.CharField(max_length=500, blank=True, null=True, help_text="Emails to notify (comma-separated for multiple friends)")
     notify_phone = models.CharField(max_length=20, blank=True, null=True, help_text="Phone number to notify (e.g., +91...)")
 
-    @property
-    def unread_notifications_count(self):
-        return self.user.notifications.filter(is_read=False).count()
-
-    @property
-    def has_unread(self):
-        return self.user.notifications.filter(is_read=False).exists()
-
     def __str__(self):
         return f"{self.user.username}'s Profile"
-
-
-class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    title = models.CharField(max_length=255)
-    message = models.TextField()
-    link = models.CharField(max_length=500, blank=True, null=True)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"Notification for {self.user.username}: {self.title}"
-
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):

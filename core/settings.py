@@ -159,35 +159,28 @@ TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 NOTIFICATION_PHONE_NUMBER = os.getenv('NOTIFICATION_PHONE_NUMBER', '+917075840247')
 
-# Email Configuration (Smart Switching)
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+# Email Configuration (RESEND)
 RESEND_API_KEY = os.getenv('RESEND_API_KEY')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@the-living-rack.com')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 
-
-if EMAIL_HOST_PASSWORD:
-    # Priority 1: SMTP (Gmail/Outlook) - BEST FOR NO-DOMAIN SETUPS
-    # This sends to anyone without needing a domain verification.
+if RESEND_API_KEY:
+    # Using Resend API (Strictly from env variables)
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {"RESEND_API_KEY": RESEND_API_KEY}
+    # Resend Free Tier: MUST use onboarding@resend.dev until domain verified
+    DEFAULT_FROM_EMAIL = "onboarding@resend.dev"
+else:
+    # Fallback to SMTP
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 465
     EMAIL_USE_TLS = False
     EMAIL_USE_SSL = True
     EMAIL_HOST_USER = EMAIL_HOST_USER
-    EMAIL_HOST_PASSWORD = EMAIL_HOST_PASSWORD
-elif RESEND_API_KEY:
-    # Priority 2: Resend API
-    # Note: Requires Domain Verification to send to anyone but the owner.
-    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
-    ANYMAIL = {"RESEND_API_KEY": RESEND_API_KEY}
-else:
-    # Default: Console backend for local testing if nothing is set
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "noreply@thelivingrack.com"
 
 EMAIL_TIMEOUT = 15
-
-
 
 
 

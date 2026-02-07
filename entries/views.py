@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -9,20 +10,8 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from django.http import JsonResponse
 from twilio.rest import Client
-from .models import Book, Entry, Profile, ReadEvent, Notification
-from django.contrib.auth.models import User
+from .models import Book, Entry, Profile, ReadEvent
 import threading
-
-def mark_notification_read(request, pk):
-    notification = get_object_or_404(Notification, pk=pk, user=request.user)
-    notification.is_read = True
-    notification.save()
-    return JsonResponse({'status': 'success'})
-
-def clear_all_notifications(request):
-    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-
 
 def send_email_async(email_obj):
     import logging
@@ -142,7 +131,7 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                     from_email = settings.DEFAULT_FROM_EMAIL
                     reply_to_list = [self.request.user.email] if self.request.user.email else None
                     
-                    # PREPARE EMAIL
+                    # SEND EMAIL NOTIFICATION
                     email = EmailMessage(
                         subject=subject,
                         body=message_content,
@@ -151,24 +140,11 @@ class EntryCreateView(LoginRequiredMixin, CreateView):
                         reply_to=reply_to_list
                     )
                     
-                    # Send Asynchronously so the user doesn't wait
+                    # Send async to keep it snappy
                     threading.Thread(target=send_email_async, args=(email,)).start()
-                    
-                    # IN-APP NOTIFICATIONS: Create notifications for any recipients who have accounts
-                    for email_addr in recipient_list:
-                        target_user = User.objects.filter(email=email_addr).first()
-                        if target_user:
-                            Notification.objects.create(
-                                user=target_user,
-                                title=f"New entry from {self.request.user.username}",
-                                message=f"{self.request.user.username} just posted '{self.object.title}' in their book '{book.title}'.",
-                                link=share_url
-                            )
-
-                    messages.success(self.request, f"Entry saved! Notifying {len(recipient_list)} friend(s).")
+                    messages.success(self.request, f"Entry saved! Notified {len(recipient_list)} friend(s).")
                     
                     email_sent = True
-
             except Exception as e:
                 messages.error(self.request, f"Failed to send email notification: {str(e)}")
                 with open("email_debug.log", "a") as f:
@@ -285,17 +261,7 @@ def entry_read_ping(request, token):
                     except Exception as e:
                         print(f"Ping SMS failed: {e}")
 
-            # IN-APP NOTIFICATION: Alert the author on the website
-            Notification.objects.create(
-                user=author,
-                title="✨ Journal Read Alert!",
-                message=f"Someone just read your entry '{entry.title}' for {event.duration_seconds} seconds.",
-                link=request.build_absolute_uri(reverse('book-detail', kwargs={'pk': entry.book.id}))
-            )
-
-
         return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'invalid'}, status=400)
 
 # --- PROFILE / SETTINGS ---
 
